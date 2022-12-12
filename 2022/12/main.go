@@ -15,7 +15,7 @@ func testCell(current_cell []int, proposed_cell []int, forest *[][]string, steps
 	proposed_letter := (*forest)[proposed_cell[0]][proposed_cell[1]]
 	proposed_cost := (*steps_map)[proposed_cell[0]][proposed_cell[1]]
 
-	is_movable := int(proposed_letter[0])-int(current_letter[0]) <= 1
+	is_movable := int(current_letter[0])-int(proposed_letter[0]) <= 1
 	is_worth_moving := proposed_cost > current_cost+1
 
 	return is_movable && is_worth_moving
@@ -66,25 +66,6 @@ func markAdjacentCells(cell []int, forest *[][]string, steps_map *[][]int) {
 	}
 }
 
-func findFewestSteps(start []int, end []int, forest [][]string, steps_map [][]int) int {
-	steps_map[start[0]][start[1]] = 0
-	markAdjacentCells(start, &forest, &steps_map)
-	return steps_map[end[0]][end[1]]
-}
-
-func clone2DSlice[T any](src [][]T) [][]T {
-	dst := make([][]T, len(src))
-	for i := range dst {
-		dst_row := make([]T, len(src[i]))
-		for j := range dst_row {
-			dst_row[j] = src[i][j]
-		}
-		dst[i] = dst_row
-	}
-
-	return dst
-}
-
 func main() {
 	start := time.Now()
 
@@ -124,34 +105,25 @@ func main() {
 		row_num++
 	}
 
+	forest[start_pos[0]][start_pos[1]] = "a"
 	forest[end_pos[0]][end_pos[1]] = "z"
+	steps_map[end_pos[0]][end_pos[1]] = 0
 
-	fewest_steps_from_start := math.MaxInt
+	markAdjacentCells(end_pos, &forest, &steps_map)
+
+	time_elapsed := time.Since(start)
+
+	fewest_steps_from_start := steps_map[start_pos[0]][start_pos[1]]
 	fewest_steps_from_a := math.MaxInt
 
-	for i := range forest {
-		for j := range forest[i] {
-			if forest[i][j] == "S" {
-				forest_copy := clone2DSlice(forest)
-				steps_map_copy := clone2DSlice(steps_map)
-
-				forest_copy[i][j] = "a"
-				fewest_steps_from_start = findFewestSteps(start_pos, end_pos, forest_copy, steps_map_copy)
-			} else if forest[i][j] == "a" {
-				fewest_steps := findFewestSteps([]int{i, j}, end_pos, clone2DSlice(forest), clone2DSlice(steps_map))
-				if fewest_steps < fewest_steps_from_a {
-					fewest_steps_from_a = fewest_steps
-				}
+	for i, row := range forest {
+		for j, cell := range row {
+			if cell == "a" && steps_map[i][j] < fewest_steps_from_a {
+				fewest_steps_from_a = steps_map[i][j]
 			}
 		}
 	}
 
-	// log.Print(start_pos, end_pos)
-	// for i := range forest {
-	// 	log.Printf("%v", steps_map[i])
-	// }
-
-	time_elapsed := time.Since(start)
 	log.Printf(`
 The fewest steps required to reach z from the start is %d.
 The fewest steps required to reach z from any a is %d.
