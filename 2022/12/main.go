@@ -24,40 +24,21 @@ func testCell(current_cell []int, proposed_cell []int, forest *[][]string, steps
 func markAdjacentCells(cell []int, forest *[][]string, steps_map *[][]int) {
 	adjacent_cells := make([][]int, 0)
 	curr_steps := (*steps_map)[cell[0]][cell[1]]
-	// Up
-	if cell[0] > 0 {
-		up_cell := []int{cell[0] - 1, cell[1]}
-
-		if testCell(cell, up_cell, forest, steps_map) {
-			adjacent_cells = append(adjacent_cells, up_cell)
-			(*steps_map)[up_cell[0]][up_cell[1]] = curr_steps + 1
-		}
+	possible_cells := [][]int{
+		{cell[0] - 1, cell[1]},
+		{cell[0] + 1, cell[1]},
+		{cell[0], cell[1] - 1},
+		{cell[0], cell[1] + 1},
 	}
-	// Down
-	if cell[0] < len(*forest)-1 {
-		down_cell := []int{cell[0] + 1, cell[1]}
 
-		if testCell(cell, down_cell, forest, steps_map) {
-			adjacent_cells = append(adjacent_cells, down_cell)
-			(*steps_map)[down_cell[0]][down_cell[1]] = curr_steps + 1
+	for _, test_cell := range possible_cells {
+		if test_cell[0] == -1 || test_cell[0] == len(*forest) || test_cell[1] == -1 || test_cell[1] == len((*forest)[0]) {
+			continue
 		}
-	}
-	// Left
-	if cell[1] > 0 {
-		left_cell := []int{cell[0], cell[1] - 1}
 
-		if testCell(cell, left_cell, forest, steps_map) {
-			adjacent_cells = append(adjacent_cells, left_cell)
-			(*steps_map)[left_cell[0]][left_cell[1]] = curr_steps + 1
-		}
-	}
-	// Right
-	if cell[1] < len((*forest)[0])-1 {
-		right_cell := []int{cell[0], cell[1] + 1}
-
-		if testCell(cell, right_cell, forest, steps_map) {
-			adjacent_cells = append(adjacent_cells, right_cell)
-			(*steps_map)[right_cell[0]][right_cell[1]] = curr_steps + 1
+		if testCell(cell, test_cell, forest, steps_map) {
+			adjacent_cells = append(adjacent_cells, test_cell)
+			(*steps_map)[test_cell[0]][test_cell[1]] = curr_steps + 1
 		}
 	}
 
