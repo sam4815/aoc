@@ -10,19 +10,16 @@ import (
 	"time"
 )
 
-type WorryOp func(int) int
-type ThrowOp func(int) int
-
 type Monkey struct {
 	items         []int
 	inspect_count int
 	divisor       int
-	worry_op      WorryOp
-	throw_op      ThrowOp
+	worry_op      func(int) int
+	throw_op      func(int) int
 }
 
-func parseWorryOp(operation string) WorryOp {
-	operation_string := strings.Split(operation, " = old ")[1]
+func parseWorryOp(operation string) func(int) int {
+	operation_string := strings.Split(strings.TrimSpace(operation), " = old ")[1]
 	operation_slice := strings.Split(operation_string, " ")
 	operator, operand_string := operation_slice[0], operation_slice[1]
 
@@ -47,7 +44,7 @@ func parseWorryOp(operation string) WorryOp {
 	return func(i int) int { return i }
 }
 
-func parseThrowOp(operation []string) (ThrowOp, int) {
+func parseThrowOp(operation []string) (func(int) int, int) {
 	divisor_slice := strings.Split(operation[0], " ")
 	divisor_string := divisor_slice[len(divisor_slice)-1]
 	divisor, _ := strconv.Atoi(divisor_string)
@@ -69,6 +66,19 @@ func parseThrowOp(operation []string) (ThrowOp, int) {
 	}, divisor
 }
 
+func parseItems(items string) []int {
+	starting_items := make([]int, 0)
+	starting_items_string := strings.Split(strings.TrimSpace(items), ": ")[1]
+	starting_items_strings := strings.Split(starting_items_string, ", ")
+
+	for _, item_string := range starting_items_strings {
+		starting_item, _ := strconv.Atoi(item_string)
+		starting_items = append(starting_items, starting_item)
+	}
+
+	return starting_items
+}
+
 func main() {
 	start := time.Now()
 
@@ -85,18 +95,10 @@ func main() {
 	for _, monkey_string := range monkey_strings {
 		monkey_description := strings.Split(monkey_string, "\n")
 
-		starting_items := make([]int, 0)
-		starting_items_string := strings.Trim(monkey_description[1], " ")
-		starting_items_string = strings.Split(starting_items_string, ": ")[1]
-		starting_items_strings := strings.Split(starting_items_string, ", ")
-		for _, item_string := range starting_items_strings {
-			starting_item, _ := strconv.Atoi(item_string)
-			starting_items = append(starting_items, starting_item)
-		}
-		monkey.items = starting_items
+		items := parseItems(monkey_description[1])
+		monkey.items = items
 
-		operation_string := strings.Trim(monkey_description[2], " ")
-		worry_op := parseWorryOp(operation_string)
+		worry_op := parseWorryOp(monkey_description[2])
 		monkey.worry_op = worry_op
 
 		throw_op, divisor := parseThrowOp(monkey_description[3:])
@@ -119,10 +121,10 @@ func main() {
 				new_monkey_idx := monkeys[i].throw_op(item)
 
 				monkeys[new_monkey_idx].items = append(monkeys[new_monkey_idx].items, item)
-				monkeys[i].items = make([]int, 0)
-
 				monkeys[i].inspect_count++
 			}
+
+			monkeys[i].items = make([]int, 0)
 		}
 	}
 
