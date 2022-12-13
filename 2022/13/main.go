@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func appendStringifiedNumber(str *[]string, dst *[]interface{}) {
+func appendStringifiedNumber(str *[]string, dst *[]any) {
 	if len(*str) == 0 {
 		return
 	}
@@ -21,12 +21,12 @@ func appendStringifiedNumber(str *[]string, dst *[]interface{}) {
 	*str = make([]string, 0)
 }
 
-func parse(value string) ([]interface{}, int) {
+func parse(value string) ([]any, int) {
 	OPEN_SLICE := 91
 	CLOSE_SLICE := 93
 	COMMA := 44
 
-	result := make([]interface{}, 0)
+	result := make([]any, 0)
 	curr_item := make([]string, 0)
 	i := 1
 
@@ -50,17 +50,17 @@ func parse(value string) ([]interface{}, int) {
 	return result, i
 }
 
-func isNumber(value interface{}) bool {
+func isNumber(value any) bool {
 	_, ok := value.(int)
 	return ok
 }
 
-func isSlice(value interface{}) bool {
-	_, ok := value.([]interface{})
+func isSlice(value any) bool {
+	_, ok := value.([]any)
 	return ok
 }
 
-func compare(a interface{}, b interface{}) int {
+func compare(a any, b any) int {
 	if isNumber(a) && isNumber(b) {
 		if a.(int) < b.(int) {
 			return 1
@@ -72,13 +72,13 @@ func compare(a interface{}, b interface{}) int {
 	}
 
 	if isSlice(a) && isSlice(b) {
-		smaller_len := len(a.([]interface{}))
-		if len(b.([]interface{})) < smaller_len {
-			smaller_len = len(b.([]interface{}))
+		smaller_len := len(a.([]any))
+		if len(b.([]any)) < smaller_len {
+			smaller_len = len(b.([]any))
 		}
 
 		for i := 0; i < smaller_len; i++ {
-			comparison := compare(a.([]interface{})[i], b.([]interface{})[i])
+			comparison := compare(a.([]any)[i], b.([]any)[i])
 			if comparison == 1 {
 				return 1
 			} else if comparison == -1 {
@@ -86,9 +86,9 @@ func compare(a interface{}, b interface{}) int {
 			}
 		}
 
-		if len(a.([]interface{})) < len(b.([]interface{})) {
+		if len(a.([]any)) < len(b.([]any)) {
 			return 1
-		} else if len(a.([]interface{})) > len(b.([]interface{})) {
+		} else if len(a.([]any)) > len(b.([]any)) {
 			return -1
 		}
 
@@ -96,11 +96,11 @@ func compare(a interface{}, b interface{}) int {
 	}
 
 	if isNumber(a) && isSlice(b) {
-		return compare([]interface{}{a}, b)
+		return compare([]any{a}, b)
 	}
 
 	if isSlice(a) && isNumber(b) {
-		return compare(a, []interface{}{b})
+		return compare(a, []any{b})
 	}
 
 	return 0
@@ -118,10 +118,10 @@ func main() {
 
 	divider_one, _ := parse("[[2]]")
 	divider_two, _ := parse("[[6]]")
-	packets := [][]interface{}{divider_one, divider_two}
+	packets := [][]any{divider_one, divider_two}
 
-	pairs := make([][][]interface{}, 0)
-	pair := make([][]interface{}, 0)
+	pairs := make([][][]any, 0)
+	pair := make([][]any, 0)
 
 	for scanner.Scan() {
 		if scanner.Text() == "" {
@@ -135,7 +135,7 @@ func main() {
 
 		if len(pair) == 2 {
 			pairs = append(pairs, pair)
-			pair = make([][]interface{}, 0)
+			pair = make([][]any, 0)
 		}
 	}
 
