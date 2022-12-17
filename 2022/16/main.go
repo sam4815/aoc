@@ -226,7 +226,7 @@ func findBestPath(volcano Volcano) int {
 			continue
 		}
 
-		if curr_volcano.pressure_released+50 < best_by_minute_map[curr_volcano.minute] {
+		if curr_volcano.pressure_released+25 < best_by_minute_map[curr_volcano.minute] {
 			continue
 		} else if curr_volcano.pressure_released > best_by_minute_map[curr_volcano.minute] {
 			best_by_minute_map[curr_volcano.minute] = curr_volcano.pressure_released
