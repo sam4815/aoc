@@ -65,6 +65,10 @@ func (chamber *Chamber) HighestRockRow() int {
 	return highest_row
 }
 
+func (chamber *Chamber) Height() int {
+	return len(chamber.grid) - chamber.HighestRockRow() + chamber.num_discarded_rows
+}
+
 func (chamber *Chamber) AddEmptyRow() {
 	empty_row := make([]string, 7)
 	for i := 0; i < len(empty_row); i++ {
@@ -247,25 +251,48 @@ func main() {
 	}
 
 	jets := strings.Split(string(f), "")
-	jets_length, jet_index, rock_index := len(jets), 0, 0
+	jets_length, cycle_length := len(jets), len(jets)*5
+	jet_index, rock_index := 0, 0
+	height_after_first_cycle, rocks_after_first_cycle := 0, 0
 
 	chamber := Chamber{max_height: 50}
 
-	for i := 0; i < 2022; i++ {
+	small_rocks_height := 0
+	target_rock := 1000000000000
+
+	for i := 0; i < target_rock; i++ {
 		chamber.AddRock(getRock(rock_index % 5))
 
 		for chamber.HasActiveRock() {
 			chamber.PushRock(jets[jet_index%jets_length])
 			jet_index++
 			chamber.Fall()
+			// Check whether we've finished the cycle
+			if jet_index%cycle_length == 0 {
+				if height_after_first_cycle == 0 {
+					height_after_first_cycle = chamber.Height()
+					rocks_after_first_cycle = i
+					continue
+				}
+
+				rocks_processed_in_cycle := i - rocks_after_first_cycle
+				height_gained_in_cycle := chamber.Height() - height_after_first_cycle
+
+				num_cycles_required := (target_rock - i) / rocks_processed_in_cycle
+
+				chamber.num_discarded_rows = (num_cycles_required * height_gained_in_cycle) + chamber.num_discarded_rows
+				i += (num_cycles_required * rocks_processed_in_cycle)
+			}
+		}
+
+		if i == 2022 {
+			small_rocks_height = chamber.Height()
 		}
 
 		rock_index++
 	}
 
-	highest_rock_row := chamber.HighestRockRow()
-	small_rocks_height := len(chamber.grid) - highest_rock_row + chamber.num_discarded_rows
-	big_rocks_height := len(chamber.grid) - highest_rock_row + chamber.num_discarded_rows
+	big_rocks_height := chamber.Height()
 
 	time_elapsed := time.Since(start)
 
