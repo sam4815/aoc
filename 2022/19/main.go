@@ -110,26 +110,7 @@ func (robocrew *RoboCrew) Tick() {
 	for robotype, quantity := range robocrew.robotypes {
 		robocrew.resources[robotype] += quantity
 	}
-
-	// log.Print("Minute: ", robocrew.minute)
 }
-
-// func (factory Factory) GeodeRequirements() map[Resource]int {
-//  obsidian_required := factory.blueprints[Geode].cost[Obsidian]
-//  clay_required := factory.blueprints[Geode].cost[Clay]
-//  ore_required := factory.blueprints[Geode].cost[Ore]
-
-//  clay_required += obsidian_required * factory.blueprints[Obsidian].cost[Clay]
-//  ore_required += obsidian_required * factory.blueprints[Obsidian].cost[Ore]
-
-//  ore_required += clay_required * factory.blueprints[Clay].cost[Ore]
-
-//  return map[Resource]int{
-//    Obsidian: obsidian_required,
-//    Clay:     clay_required,
-//    Ore:      ore_required,
-//  }
-// }
 
 func printResource(resource Resource) string {
 	switch resource {
@@ -160,8 +141,21 @@ func (robocrew RoboCrew) Print() {
 	log.Print(minute_string, robo_string, resource_string)
 }
 
+func (robocrew RoboCrew) Stringify() string {
+	robo_string := ""
+	resource_string := ""
+
+	for robotype, quantity := range robocrew.robotypes {
+		robo_string += fmt.Sprintf("t:%d,%d.", quantity, robotype)
+	}
+	for resource, quantity := range robocrew.resources {
+		resource_string += fmt.Sprintf("t:%d,%d.", quantity, resource)
+	}
+
+	return robo_string + resource_string
+}
+
 func (robocrew *RoboCrew) Spend(cost map[Resource]int) {
-	// log.Print("Spending at minute ", robocrew.minute)
 	for resource, quantity := range cost {
 		robocrew.resources[resource] -= quantity
 	}
@@ -184,32 +178,39 @@ func (robocrew RoboCrew) CanAfford(cost map[Resource]int) bool {
 	return can_afford
 }
 
+// Various hacky ways to discard paths
 func (robocrew RoboCrew) SpendingUnwisely(factory Factory) bool {
-	if robocrew.minute > 10 && robocrew.robotypes[Clay] == 0 {
+	if robocrew.resources[Clay] > factory.max_costs[Clay]*3 && robocrew.resources[Ore] > factory.max_costs[Ore]*3 {
 		return true
 	}
 
-	// required_obsidian := factory.blueprints[Geode][Obsidian]
+	if robocrew.resources[Ore] > factory.blueprints[Geode][Ore]*2 && robocrew.resources[Obsidian] > factory.blueprints[Geode][Obsidian]*2 {
+		return true
+	}
 
-	// possible_obsidian := robocrew.resources[Obsidian] + robocrew.robotypes[Obsidian]*(24-robocrew.minute)
-	// in minute 23
-	// if robocrew.minute > 20 && robocrew.robotypes[Obsidian] == 0 {
-	// 	return true
-	// }
+	if robocrew.resources[Ore] > factory.max_costs[Ore]*3 {
+		return true
+	}
 
-	// if robocrew.resources[Clay] > factory.max_costs[Clay]*2 && robocrew.resources[Ore] > factory.max_costs[Ore]*2 {
-	// 	return true
-	// }
+	if robocrew.robotypes[Ore] > factory.max_costs[Ore] {
+		return true
+	}
+
+	if robocrew.robotypes[Clay] > factory.max_costs[Clay] {
+		return true
+	}
+
+	if robocrew.robotypes[Obsidian] > factory.max_costs[Obsidian] {
+		return true
+	}
 
 	if robocrew.minute > 16 {
 		ratio := factory.blueprints[Obsidian][Clay] / factory.blueprints[Obsidian][Ore]
-		// if robocrew.robotypes[Clay]/robocrew.robotypes[Ore] < (ratio - 4) {
-		// 	return true
-		// }
-		// if robocrew.robotypes[Clay]/robocrew.robotypes[Ore] > (ratio + 2) {
-		// 	return true
-		// }
-		if ratio >= 3 && robocrew.robotypes[Clay]/robocrew.robotypes[Ore] < 2 {
+		if ratio >= 3 && robocrew.robotypes[Clay]/robocrew.robotypes[Ore] < 1 {
+			return true
+		}
+
+		if ratio <= 1 && robocrew.robotypes[Clay]/robocrew.robotypes[Ore] >= 2 {
 			return true
 		}
 	}
@@ -227,11 +228,6 @@ func (robocrew *RoboCrew) GetChoices(factory Factory) []RoboCrew {
 			copy.Spend(factory.blueprints[Resource(i)])
 			copy.Tick()
 			copy.AddRobotype(Resource(i))
-
-			if i == 4 || i == 3 {
-				choices = append(choices, copy)
-				break
-			}
 
 			if copy.SpendingUnwisely(factory) {
 				continue
@@ -258,14 +254,11 @@ func (robocrew RoboCrew) FindMaxGeodes(factory Factory) int {
 	max_geodes := 0
 	best_obsidian_by_minute_map := make(map[int]int)
 	best_geode_by_minute_map := make(map[int]int)
-
-	// geode
+	traversal_map := make(map[string]bool)
 
 	for len(robocrew_queue) > 0 {
 		curr_robocrew, robocrew_queue = robocrew_queue[0], robocrew_queue[1:]
-		// time.Sleep(500 * time.Millisecond)
-		// curr_robocrew.Print()
-		// Simulation complete
+
 		if curr_robocrew.minute == 32 {
 			if curr_robocrew.resources[Geode] > max_geodes {
 				max_geodes = curr_robocrew.resources[Geode]
@@ -274,20 +267,28 @@ func (robocrew RoboCrew) FindMaxGeodes(factory Factory) int {
 			continue
 		}
 
-		if curr_robocrew.robotypes[Obsidian] < best_obsidian_by_minute_map[curr_robocrew.minute] && curr_robocrew.robotypes[Geode] < best_geode_by_minute_map[curr_robocrew.minute] {
+		robocrew_id := curr_robocrew.Stringify()
+		if traversal_map[robocrew_id] == true {
 			continue
 		} else {
-			if curr_robocrew.robotypes[Geode] > best_geode_by_minute_map[curr_robocrew.minute] {
-				best_geode_by_minute_map[curr_robocrew.minute] = curr_robocrew.robotypes[Geode]
-			}
+			traversal_map[robocrew_id] = true
+		}
+
+		if curr_robocrew.robotypes[Obsidian] < best_obsidian_by_minute_map[curr_robocrew.minute] &&
+			curr_robocrew.robotypes[Geode] < best_geode_by_minute_map[curr_robocrew.minute] {
+			continue
+		} else {
 			if curr_robocrew.robotypes[Obsidian] > best_obsidian_by_minute_map[curr_robocrew.minute] {
 				best_obsidian_by_minute_map[curr_robocrew.minute] = curr_robocrew.robotypes[Obsidian]
+			}
+			if curr_robocrew.robotypes[Geode] > best_geode_by_minute_map[curr_robocrew.minute] {
+				best_geode_by_minute_map[curr_robocrew.minute] = curr_robocrew.robotypes[Geode]
 			}
 		}
 
 		possible_paths := curr_robocrew.GetChoices(factory)
 
-		robocrew_queue = append(robocrew_queue, possible_paths...)
+		robocrew_queue = append(possible_paths, robocrew_queue...)
 	}
 
 	return max_geodes
@@ -304,6 +305,7 @@ func main() {
 	scanner := bufio.NewScanner(f)
 
 	quality_level := 0
+	geode_product := 1
 	factories := make([]Factory, 0)
 
 	for scanner.Scan() {
@@ -318,28 +320,17 @@ func main() {
 		max_geodes := robocrew.FindMaxGeodes(factory)
 		log.Print("Processed blueprint ", factory.id, ", found ", max_geodes, " geodes")
 		quality_level += max_geodes * factory.id
+		geode_product *= max_geodes
 	}
 
 	time_elapsed := time.Since(start)
 
 	log.Printf(`
 The sum of the quality levels is %d.
-The sum of the quality levels is %d.
+The product of the maximum number of geodes is %d.
 Solution generated in %s.`,
 		quality_level,
-		quality_level,
+		geode_product,
 		time_elapsed,
 	)
 }
-
-// each geode requires AT LEAST 7 ore, AT LEAST 14 clay, AT LEAST 7 obsidian
-
-// ORE ROBOT: costs 4
-// TARGET: CLAY, COST: 2 ore
-// TARGET: OBSIDIAN, COST: 3 ore and 14 clay
-//
-// current ore/minute rate: 1
-// choose clay because it's the lowest ratio (0/14)
-
-// current ore/minute rate: 1
-// current clay/minute rate: 1
