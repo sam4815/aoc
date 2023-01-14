@@ -10,6 +10,7 @@ import (
 )
 
 type Cavern [][]int
+type PathQueue []Path
 
 type Path struct {
 	risk_level    int
@@ -88,10 +89,28 @@ func (path Path) GetPossibleMoves(cavern Cavern) [][]int {
 	return possible_moves
 }
 
+// Insert the element so that the queue is ordered by lowest cost first
+func (queue *PathQueue) Push(path Path) {
+	index := len(*queue)
+	for i := 0; i < len(*queue); i++ {
+		if path.risk_level <= (*queue)[i].risk_level {
+			index = i
+			break
+		}
+	}
+
+	if index == len(*queue) {
+		*queue = append(*queue, path)
+	} else {
+		*queue = append((*queue)[:index+1], (*queue)[index:]...)
+		(*queue)[index] = path
+	}
+}
+
 func (cavern Cavern) FindLowestRiskPath() int {
 	smallest_levels := cavern.GetDumbRiskLevels()
 	starting_path := Path{curr_position: []int{0, 0}, risk_level: 0}
-	path_queue, curr_path := []Path{starting_path}, starting_path
+	path_queue, curr_path := PathQueue{starting_path}, starting_path
 
 	for len(path_queue) > 0 {
 		curr_path, path_queue = path_queue[0], path_queue[1:]
@@ -106,7 +125,7 @@ func (cavern Cavern) FindLowestRiskPath() int {
 			new_path := curr_path.Clone()
 			new_path.curr_position = move
 			new_path.risk_level += cavern.Get(move)
-			path_queue = append(path_queue, new_path)
+			path_queue.Push(new_path)
 		}
 	}
 
