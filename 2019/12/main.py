@@ -57,12 +57,12 @@ def sample(positions, velocities):
 
 
 def find_cycle_length(sample):
-    position_map = {}
-    for i in range(600, len(sample)):
-        subsequence = tuple(sample[i - 600 : i])
-        if position_map.get(subsequence) is not None:
-            return i - position_map[subsequence]
-        position_map[subsequence] = i
+    for possible_cycle in range(1, len(sample)):
+        for i in range(100):
+            if sample[i] != sample[i + possible_cycle]:
+                break
+            if i == 99:
+                return possible_cycle
     return 0
 
 
