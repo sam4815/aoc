@@ -89,7 +89,7 @@ class Computer:
         self.pc += 4
 
     def run(self):
-        while self.current_instruction() != 99:
+        while self.current_instruction() != 99 and not self.terminated:
             opcode = self.current_instruction() % 100
 
             if opcode == 1:
