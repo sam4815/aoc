@@ -2,43 +2,47 @@ import Foundation
 
 let start = Date()
 
+struct Rule {
+  var min: Int = 0
+  var max: Int = 0
+  var diff: Int = 0
+}
+
 let contents = try String(contentsOfFile: "input.txt").split(separator: "\n\n")
 let seeds = contents[0].split(separator: ": ")[1].split(separator: " ").map { Int($0)! }
 
 let maps = contents[1...].map {
   $0.split(separator: "\n")[1...].map({
     $0.split(separator: " ").map { Int($0)! }
-  })
+  }).map { Rule(min: $0[1], max: $0[1] + $0[2], diff: $0[0] - $0[1]) }
 }
 
-func mapRanges(ranges: [(Int, Int)], rules: [[Int]]) -> [(Int, Int)] {
+func mapRanges(ranges: [(Int, Int)], rules: [Rule]) -> [(Int, Int)] {
   ranges.flatMap { (min, max) in
     for rule in rules {
       // Rule bounds the range
-      if min >= rule[1] && max < (rule[1] + rule[2]) {
-        return [(rule[0] + (min - rule[1]), rule[0] + (max - rule[1]))]
+      if min >= rule.min && max < rule.max {
+        return [(min + rule.diff, max + rule.diff)]
       }
       // Range bounds the rule
-      if min < rule[1] && max >= (rule[1] + rule[2]) {
-        return mapRanges(ranges: [(min, rule[1] - 1)], rules: rules)
-          + mapRanges(ranges: [(rule[1] + rule[2], max)], rules: rules) + [
-            (rule[0], rule[0] + rule[2])
-          ]
-      }
-      // Range partially intersects left side of rule
-      if min < rule[1] && max >= rule[1] && max < (rule[1] + rule[2]) {
-        return mapRanges(ranges: [(min, rule[1] - 1)], rules: rules) + [
-          (rule[0], rule[0] + (max - rule[1]))
+      if min < rule.min && max >= rule.max {
+        return mapRanges(ranges: [(min, rule.min - 1), (rule.max, max)], rules: rules) + [
+          (rule.min + rule.diff, rule.max + rule.diff)
         ]
       }
-      // Range partially intersects right side of rule
-      if min > rule[1] && min < (rule[1] + rule[2]) && max >= (rule[1] + rule[2]) {
-        return mapRanges(ranges: [(rule[1] + rule[2], max)], rules: rules) + [
-          (rule[0] + (min - rule[1]), rule[0] + rule[2])
+      // Range intersects left side of rule
+      if min < rule.min && max >= rule.min && max < rule.max {
+        return mapRanges(ranges: [(min, rule.min - 1)], rules: rules) + [
+          (rule.min + rule.diff, max + rule.diff)
+        ]
+      }
+      // Range intersects right side of rule
+      if min > rule.min && min < rule.max && max >= rule.max {
+        return mapRanges(ranges: [(rule.max, max)], rules: rules) + [
+          (min + rule.diff, rule.max + rule.diff)
         ]
       }
     }
-    // Range does not intersect rule at all
     return [(min, max)]
   }
 }
@@ -62,5 +66,5 @@ print(
   """
   Counting only the bounding seeds, the lowest location number is \(partialLocationMin).
   Counting all seeds, the lowest location number is \(locationMin).
-  Solution generated in \(timeElapsed).
+  Solution generated in \(String(format: "%.4f", timeElapsed))s.
   """)
