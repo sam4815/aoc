@@ -25,12 +25,12 @@ func countPermutations(records: [Substring], groups: [Int]) -> Int {
   let group = groups.first!
   var sum = 0
 
-  for index in 0..<records.count {
-    if records[..<index].contains("#") || (group + index) > records.count {
+  for index in 0...(records.count - groups.reduce(0, +) - groups.count + 1) {
+    if records[..<index].contains("#") {
       break
     }
 
-    if !records[index..<(group + index)].allSatisfy({ $0 == "#" || $0 == "?" }) {
+    if records[index..<(group + index)].contains(where: { $0 == "." }) {
       continue
     }
 
@@ -39,19 +39,18 @@ func countPermutations(records: [Substring], groups: [Int]) -> Int {
       continue
     }
 
-    if !["?", "."].contains(records[group + index]) {
+    if records[group + index] == "#" {
       continue
     }
 
-    if groups.count == 1 && !records[(group + index)...].contains("#") {
-      sum += 1
+    if groups.count == 1 {
+      sum += records[(group + index + 1)...].contains("#") ? 0 : 1
+      continue
     }
 
-    if groups.count > 1 {
-      sum += countPermutations(
-        records: Array(records[(group + index + 1)...]), groups: Array(groups[1...])
-      )
-    }
+    sum += countPermutations(
+      records: Array(records[(group + index + 1)...]), groups: Array(groups[1...])
+    )
   }
 
   visited[hash] = sum
