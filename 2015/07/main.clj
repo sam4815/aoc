@@ -9,28 +9,25 @@
                        (map (juxt (comp last :operands) identity))
                        (into {})))
 
-(defn parse-operand [operand instructions]
-  (if (integer? (parse-long operand))
-    (parse-long operand)
-    ((resolve 'find-signal-memo) operand instructions)))
+(defn find-signal [instructions]
+  (def memoized (memoize (fn [signal]
+                           (let [{:keys [operands operator]} (get instructions signal)
+                                 parse-operand (fn [[parsed operand]] (if (integer? parsed) parsed (memoized operand)))
+                                 [a b] (map (comp parse-operand (juxt parse-long identity)) (drop-last operands))]
+                             (bit-and
+                               0xFFFF
+                               (case operator
+                                 "PUT" a
+                                 "NOT" (bit-not a)
+                                 "AND" (bit-and a b)
+                                 "OR" (bit-or a b)
+                                 "LSHIFT" (bit-shift-left a b)
+                                 "RSHIFT" (bit-shift-right a b))))))))
 
-(defn find-signal [signal instructions]
-  (let [instruction (get instructions signal)
-        operands (map #(parse-operand % instructions) (drop-last (get instruction :operands)))]
-    (case (get instruction :operator)
-      "PUT" (first operands)
-      "NOT" (bit-and (bit-not (first operands)) 16rFFFF)
-      "AND" (bit-and (first operands) (second operands) 16rFFFF)
-      "OR" (bit-and (bit-or (first operands) (second operands)) 16rFFFF)
-      "LSHIFT" (bit-and (bit-shift-left (first operands) (second operands)) 16rFFFF)
-      "RSHIFT" (bit-and (bit-shift-right (first operands) (second operands)) 16rFFFF))))
+(def a-signal ((find-signal instructions) "a"))
+(def modified-a-signal ((find-signal (assoc instructions "b" {:operator "PUT" :operands [(str a-signal) "b"]})) "a"))
 
-(def find-signal-memo (memoize find-signal))
-
-(def a-signal (find-signal-memo "a" instructions))
-(def modified-a-signal (find-signal-memo "a" (assoc instructions "b" {:operator "PUT" :operands (list (str a-signal) "b")})))
-
-(println (format "The signal provided to wire a is %s." a-signal))
-(println (format "After modifying b, the signal provided to wire a is %s." modified-a-signal))
+(println (format "The signal provided to wire a is %d." a-signal))
+(println (format "After modifying b, the signal provided to wire a is %d." modified-a-signal))
 (println (format "Solution generated in %.3fs." (float (/ (- (System/currentTimeMillis) start-time) 1000))))
 
