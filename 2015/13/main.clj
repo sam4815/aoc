@@ -21,7 +21,7 @@
           tail (permutations (disj (set collection) head))]
       (cons head tail))))
 
-(defn find-happiness [arrangement preferences]
+(defn find-happiness [preferences arrangement]
   (first
     (reduce (fn [[happiness a] b] [(+ happiness (get-in preferences [a b]) (get-in preferences [b a])) b])
             [0 (last arrangement)]
@@ -29,7 +29,7 @@
 
 (defn find-optimal-happiness [preferences]
   (->> (permutations (set (keys preferences)))
-       (map #(find-happiness % preferences))
+       (map (partial find-happiness preferences))
        (apply max)))
 
 (println (format "The happiness score of the optimal seating arrangement is %d." (find-optimal-happiness preferences)))
